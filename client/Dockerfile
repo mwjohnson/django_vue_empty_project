@@ -1,7 +1,8 @@
-FROM node:lts-alpine
+FROM node:16.18.1-bullseye-slim
 
 # install simple http server for serving static content
 RUN npm install -g http-server
+RUN npm install -g npm@8.19.3
 
 # make the 'app' folder the current working directory
 WORKDIR /app

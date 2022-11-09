@@ -1,10 +1,11 @@
-FROM python:3.7-stretch
+FROM python:3.10-slim-bullseye
 
 RUN apt-get update
 RUN apt-get install apt-utils -y
 RUN apt-get install nano -y
 
 RUN apt-get install gettext gettext-base -y
+RUN apt-get -y install python-celery-common
 
 RUN mkdir /code
 WORKDIR /code
