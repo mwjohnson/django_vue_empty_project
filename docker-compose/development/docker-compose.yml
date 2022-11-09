@@ -1,0 +1,72 @@
+version: '3'
+
+services:
+  api:
+    image: &api api
+    # Production version of launch command: daphne -p 8000 api.asgi:application
+    # Put in place of "python3 manage.py runserver 0:8000"
+    command: bash -c "python3 manage.py migrate && python3 manage.py runserver 0:8000"
+    env_file: &envfile
+      - .env
+    ports:
+      - 8000
+    depends_on:
+      - db
+
+  db:
+    image: postgres
+    env_file: *envfile
+    ports:
+      - 5432
+
+  client:
+    image: &client client
+    command: http-server dist
+    env_file: *envfile
+    ports:
+      - 8080
+
+  broker:
+    image: rabbitmq:3
+    env_file: *envfile
+    ports:
+      - 5672
+
+  worker:
+    image: *api
+    restart: "no"
+    env_file: *envfile
+    # TODO start multiple workers/specify threads per worker
+    # See http://docs.celeryproject.org/en/latest/userguide/workers.html
+    command: celery -A api worker -l info
+    depends_on:
+      - broker
+
+  flower:
+    image: zoomeranalytics/flower:0.9.1-4.0.2
+    restart: "no"
+    env_file: *envfile
+    environment:
+      - FLOWER_BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@${RABBITMQ_HOST}:5672
+    ports:
+      - 5555
+    depends_on:
+      - api
+      - worker
+      - broker
+
+  redis:
+    image: redis:latest
+    env_file: *envfile
+    ports:
+      - 6379
+
+  nginx:
+    image: nginx
+    env_file: *envfile
+    ports:
+      - "80:80"
+      - "5554:5554"
+    depends_on:
+      - api
+      - client

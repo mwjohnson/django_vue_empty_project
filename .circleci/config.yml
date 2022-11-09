@@ -1,0 +1,64 @@
+version: 2
+jobs:
+  check_api:
+    docker:
+      - image: circleci/python:3.6-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install API Requirements
+          command: |
+            pip install -r api/requirements.txt --user
+      - run:
+          name: Install Flake8
+          command: |
+            pip install -r circleci/flake8_requirements.txt --user
+      - run:
+          name: Add Path
+          command: |
+            echo 'export PATH=$HOME/.local/bin:$PATH' >> $BASH_ENV
+            source /home/circleci/.bashrc
+      - run:
+          name: Run Flake8
+          command: |
+            flake8 --filename=*.py --max-line-length=200
+      - run:
+          name: Run Django Unit Tests
+          command: |
+            python3 api/manage.py test
+  check_client:
+    docker:
+      - image: circleci/node:12.1.0-stretch-browsers
+    steps:
+      - checkout
+      - run:
+          name: Install Vue CLI
+          command: |
+            cd client
+            npm install @vue/cli
+      - run:
+          name: Install Client Requirements
+          command: |
+            cd client
+            npm install
+      - run:
+          name: Lint
+          command: |
+            cd client
+            npm run lint
+      - run:
+          name: Run Vue Unit Tests
+          command: |
+            cd client
+            npm run test:unit
+      - run:
+          name: Run Vue End-to-end Tests
+          command: |
+            cd client
+            npm run test:e2e
+workflows:
+  version: 2
+  project_check:
+    jobs:
+      - check_api
+      - check_client
